@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee QR Code</title>
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+</head>
+<body>
+    <h1>Employee QR Code Management</h1>
+
+    <!-- Generate QR Code Section -->
+    <h2>Generate and Download QR Code</h2>
+    <form id="generate-form">
+        <label for="emp_id">Enter Employee ID:</label>
+        <input type="number" id="emp_id" name="emp_id" required>
+        <button type="submit">Generate QR Code</button>
+    </form>
+    <div id="download-link"></div>
+
+    <!-- QR Code Scanner Section -->
+    <h2>Scan QR Code</h2>
+    <div id="reader" style="width: 500px;"></div>
+    <div id="scan-result"></div>
+
+    <script>
+        // Handle QR Code Generation
+        document.getElementById('generate-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const empId = document.getElementById('emp_id').value;
+
+            fetch(`/generate_qr/${empId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.download_link) {
+                        document.getElementById('download-link').innerHTML = `<a href="${data.download_link}" download>Download QR Code</a>`;
+                    } else {
+                        document.getElementById('download-link').innerText = 'Error generating QR code';
+                    }
+                });
+        });
+
+        // Initialize QR Code Scanner
+        const html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.start(
+            { facingMode: "environment" }, 
+            { fps: 10, qrbox: 250 },
+            qrMessage => {
+                fetch('/scan_qr', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ qr_data: qrMessage })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.emp_id) {
+                        document.getElementById('scan-result').innerHTML = `Employee ID: ${data.emp_id}, Name: ${data.emp_name}`;
+                    } else {
+                        document.getElementById('scan-result').innerText = 'Employee not found';
+                    }
+                });
+            },
+            errorMessage => {
+                console.error(errorMessage);
+            }
+        );
+    </script>
+</body>
+</html>

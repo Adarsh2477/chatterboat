@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Detection System</title>
+    <style>
+        body {
+            margin: 0; /* Remove default margin */
+            height: 100vh; /* Full viewport height */
+            overflow: hidden; /* Prevent scrolling */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative; /* For positioning the overlay */
+            background-color: #2c3e50; /* Dark background for better visibility */
+            color: white; /* Default text color */
+            font-family: Arial, sans-serif; /* Font style */
+        }
+        h1 {
+            position: absolute;
+            top: 20px; /* Position title at the top */
+            left: 50%;
+            transform: translateX(-50%); /* Center the title */
+            font-size: 2em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7); /* Subtle shadow for better readability */
+        }
+        canvas {
+            display: none; /* Hide canvas */
+        }
+        #upload-input {
+            position: absolute;
+            top: 80px; /* Position the upload input below the title */
+            left: 50%;
+            transform: translateX(-50%); /* Center the upload input */
+            padding: 10px; /* Add padding for better touch targets */
+            border: none; /* Remove border */
+            border-radius: 5px; /* Rounded corners */
+            background-color: #2980b9; /* Button color */
+            color: white; /* Button text color */
+            cursor: pointer; /* Pointer cursor for button */
+            font-size: 1em; /* Font size */
+            transition: background-color 0.3s; /* Smooth transition for hover effect */
+        }
+        #upload-input:hover {
+            background-color: #3498db; /* Lighter blue on hover */
+        }
+        #message {
+            position: absolute;
+            bottom: 20px; /* Position message at the bottom */
+            left: 50%;
+            transform: translateX(-50%); /* Center the message */
+            font-size: 1.5em;
+            text-align: center;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7); /* Shadow for better readability */
+        }
+    </style>
+</head>
+<body>
+    <h1>QR Code Detection System</h1>
+
+    <!-- File upload area -->
+    <input type="file" id="upload-input" accept="image/*">
+    
+    <canvas id="canvas"></canvas>
+    
+    <!-- Message display -->
+    <div id="message"></div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const uploadInput = document.getElementById('upload-input');
+        const messageDisplay = document.getElementById('message'); // Message display element
+
+        // Upload QR code image
+        uploadInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageData = e.target.result;
+                sendImage(imageData);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Send image data to the server for QR detection
+        function sendImage(imageData) {
+            fetch('/upload_qr_image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ image: imageData }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    messageDisplay.innerText = `Detected QR Code! Name: ${data.name}, ID: ${data.id}`;
+                    
+                    // Redirect to new page with query params after a short delay
+                    setTimeout(() => {
+                        window.location.href = `/employee_details?name=${encodeURIComponent(data.name)}&id=${encodeURIComponent(data.id)}`;
+                    }, 3000); // Delay before redirecting
+                } else {
+                    // Show error message
+                    messageDisplay.innerText = data.message;
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                messageDisplay.innerText = 'Error processing the image.';
+            });
+        }
+    </script>
+</body>
+</html>
